@@ -23,7 +23,7 @@ def foo():
     y = W2 * y
 
     loss = tf.reduce_mean(tf.square(y - y_data))
-    optimizer = tf.train.GradientDescentOptimizer(0.05)
+    optimizer = tf.train.AdamOptimizer(0.05)
     train = optimizer.minimize(loss)
 
     init = tf.global_variables_initializer()
@@ -37,5 +37,28 @@ def foo():
             print(i, sess.run(W), sess.run(b), sess.run(loss))
     embed()
 
+def weight_sharing():
+    def scale_op(x, scalar_name):
+        var1 = tf.get_variable(scalar_name, shape=[], initializer=tf.constant_initializer(1))
+        return x * var1
+
+    scale_by_y = tf.make_template('scale_by_y', scale_op, scalar_name='y')
+    
+    x1_data = np.random.randn(10).astype(np.float32)
+    x2_data = np.random.randn(5).astype(np.float32)
+
+    y1 = scale_by_y(x1_data)
+    y2 = scale_by_y(x2_data)
+
+    init = tf.global_variables_initializer()
+    sess = tf.Session()
+    sess.run(init)
+
+    print("y1 = ", sess.run(y1))
+    print("y2 = ", sess.run(y2))
+    embed()
+
+
 if __name__ == '__main__':
-    foo()
+    weight_sharing()
+    #foo()
