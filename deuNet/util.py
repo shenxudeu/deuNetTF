@@ -22,7 +22,7 @@ def get_variables_in_scope(scope, collection=tf.GraphKeys.TRAINABLE_VARIABLES):
     return tuple(tf.get_collection(collection, scope_name))
 
 
-def get_variables_in_module(module, collection=tf.Graphkeys.TRAINABLE_VARIABLES):
+def get_variables_in_module(module, collection=tf.GraphKeys.TRAINABLE_VARIABLES):
     """Returns a tuple of `tf.Variable` from a `deuNet.Module`
 
     Inputs:
