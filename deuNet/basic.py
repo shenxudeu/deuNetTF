@@ -15,7 +15,7 @@ import tensorflow as tf
 
 from deuNet import base
 from deuNet import util
-from deuNet import initialization
+from deuNet import initializations
 
 class Linear(base.AbstractModule):
     """Linear Module with Bias(optional)"""
@@ -61,9 +61,9 @@ class Linear(base.AbstractModule):
         self._input_shape = input_shape
 
         if "w" not in self._initializers:
-            self._initializers["w"] = initialization.he_normal(self._input_shape[1])
+            self._initializers["w"] = initializations.he_normal(self._input_shape[1])
         if "b" not in self._initializers:
-            self._initializers["b"] = initialization.he_normal(self._input_shape[1])
+            self._initializers["b"] = initializations.he_normal(self._input_shape[1])
 
         weight_shape = (self._input_shape[1], self.output_size)
         dtype = inputs.dtype

@@ -2,10 +2,9 @@
 
 Support:
     he_normal: Gaussian initialization scaled by fan_in
-        reference:K. He, X. Zhang, S. Ren, and J. Sun, “Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification,” arXiv:1502.01852 [cs], Feb. 2015.
-
+        reference: https://arxiv.org/abs/1502.01852
     glorot_normal: Gaussian initialization scaled by fan_in + fan_out
-        reference:X. Glorot and Y. Bengio, “Understanding the difficulty of training deep feedforward neural networks,” in International conference on artificial intelligence and statistics, 2010, pp. 249–256.
+        reference: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.207.2059
 """
 from __future__ import absolute_import
 from __future__ import division

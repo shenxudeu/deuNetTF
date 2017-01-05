@@ -4,8 +4,10 @@ from __future__ import division
 from __future__ import print_function
 
 import re
+import inspect
 
 import tensorflow as tf
+from deuNet import initializations
 
 
 def get_variables_in_scope(scope, collection=tf.GraphKeys.TRAINABLE_VARIABLES):
@@ -86,4 +88,48 @@ def _convert_activation(activation):
 
 def check_activation(activation):
     return _convert_activation(activation)
+
+
+def get_initializers(possible_keys, initializer, param_shapes, init_params=None):
+    """Generate initializers for all possible parameters in the module
+    
+    It generates initilizers for all possible keys, then overwirte some of them from init_params. 
+    Inputs:
+        possible_keys: set of string , a set of parameter names need to have initilizers.
+        initializer: string, the initilization methods.
+        param_shapes: dictionary, shapes of all parameters.
+        init_params: dict of np.array, pre-defined initilization parameters. Default is None.
+    Outpus:
+        initializers: dict of initializers.
+    """
+    # Error Checking and convert initializer to `callable`
+    if initializer is None:
+        initializer = "he_normal"
+
+    if isinstance(initializer, str):
+        initializer = getattr(initializations,initializer)
+    else:
+        raise TypeError("initializer {} must be None or string.".format(initializer))
+    
+    initializers = {}
+    arg_len = len(getargspec(initializer)[0])
+    for k in possible_keys:
+        if k not in param_shapes:
+            raise KeyError("parameter {} must be in param_shapes dictionary".format(k))
+        if arg_len == 1: # does not need fan_in or fan_out
+            initializers[k] = initializer()
+        elif arg_len == 2: # need fan_in
+            initializers[k] = initializer(param_shapes[k][0])
+        elif arg_len == 3: # need fan_in and fan_out
+            initializers[k] = initializer(param_shapes[k][0],param_shapes[k][1])
+        else:
+            raise ValueError("initialization func only support less then 3 args, but {} provided".format(arg_len))
+           
+        # overwrite parameter initializer if a initial matrix provided
+        if k in init_params:
+            initializers[k] = init_params[k]
+    
+    return initializers
+
+
 
