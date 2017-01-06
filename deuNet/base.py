@@ -5,7 +5,7 @@ A Module is an object which can be connected into the Graphs multiple times
 using the __call__ function, sharing variables automatically with no need to
 use scope or specify resue=True.
 """
-from __future__ import absoluate_import
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
@@ -79,7 +79,7 @@ class AbstractModule(object):
         Returns:
             out: `tf.tensor`, the output tensor computed by module
         """
-        out = self._template(args, **kwargs)
+        out = self._template(*args, **kwargs)
         self._is_connected = True
         return out
     
@@ -107,6 +107,10 @@ class AbstractModule(object):
     def get_possbile_initializer_keys(cls):
         """Returns the keys the dictionary of variable initializers may contain"""
         return getattr(cls, "POSSIBLE_INITIALIZER_KEYS", set())
+
+    def _ensure_is_connected(self):
+        if not self.is_connected:
+            raise NotConnectedError("Variable in {} not instantiated yet, __call__ the module".formt(self.name))
     
 
 class Module(AbstractModule):

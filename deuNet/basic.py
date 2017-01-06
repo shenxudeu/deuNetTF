@@ -17,19 +17,21 @@ from deuNet import base
 from deuNet import util
 from deuNet import initializations
 
+from IPython import embed
+
 class Linear(base.AbstractModule):
     """Linear Module with Bias(optional)"""
 
-    def __init__(self, output_size, use_bias=True, initializers=None, name="linear"):
+    def __init__(self, output_size, initial_params=None, use_bias=True, initializer=None, name="linear"):
         super(Linear, self).__init__(name=name)
         self._output_size = output_size
+        self._initial_params = initial_params
         self._use_bias = use_bias
+        self.initializer = initializer
         self._input_shape = None
         self._w = None
         self._b = None
-        self.possible_keys = self.get_possbile_initializer_keys(use_bias=use_bias)
-        # check if all `tf.Variable` have initializer.
-        self._initializers = util.check_initializers(initializers, self.possible_keys)
+        self.possible_keys = self.get_possible_initializer_keys(use_bias=use_bias)
 
     @classmethod
     def get_possible_initializer_keys(cls, use_bias=True):
@@ -60,22 +62,24 @@ class Linear(base.AbstractModule):
 
         self._input_shape = input_shape
 
-        if "w" not in self._initializers:
-            self._initializers["w"] = initializations.he_normal(self._input_shape[1])
-        if "b" not in self._initializers:
-            self._initializers["b"] = initializations.he_normal(self._input_shape[1])
-
+        param_shapes = {}
         weight_shape = (self._input_shape[1], self.output_size)
         dtype = inputs.dtype
+        param_shapes["w"] = weight_shape
+        if self._use_bias:
+            bias_shape = (self.output_size,)
+            param_shapes["b"] = bias_shape
+        
+        # generate initializers for each parameters
+        self._initializers = util.get_initializers(self.possible_keys, self.initializer, param_shapes, init_params=self._initial_params)
 
         # NOTE: use `tf.get_variable` instead of `tf.Variable` for weight sharing
-        self._w = tf.get_variable("w", shape=weight_shape, dtype=dtype, initializer=self._initializers["w"])
+        self._w = util.get_tf_variable("w", shape=weight_shape, dtype=dtype, initializer=self._initializers["w"])
         outputs = tf.matmul(inputs, self._w)
         
         if self._use_bias:
-            bias_shape = (self.output_size,)
-            self._b = tf.get_variable("b", shape=bias_shape, dtype=dtype, initializer=self._initializers["b"])
-            otuputs = outputs + self._b
+            self._b = util.get_tf_variable("b", shape=bias_shape, dtype=dtype, initializer=self._initializers["b"])
+            outputs += self._b
 
         return outputs
 
@@ -106,27 +110,27 @@ class Dense(Linear):
     This is derived from Linear module, but with a activation function.
     """
 
-    def __init__(self, output_size, activation=None, use_bias=True, initializers=None, name="dense"):
+    def __init__(self, output_size, initial_params=None, activation=None, use_bias=True, initializer=None, name="dense"):
         """ Dense constructor
 
         Inputs:
             output_size: int, output of this module will be [batch_size, output_size]
+            initial_params: dict of np.array, pre-defined initial weights.
             activation: `tf.callable`, element-wise function used as activation function. Default is `None`, which is linear module.
             use_bias: bool, weather to include bias parameters. Default `True`
-            initializers: dict, optional dict containing initializers to initialize the weights and bais.(There will be a wrapper to
-                generate this dict)
+            initializer: string, optional initial method name to initialize the weights and bais.
             name: string, name of this module
         """
-        super(Dense, self).__init__(name=name)
-        self._output_size = output_size
+        super(Dense, self).__init__(output_size, initial_params=initial_params, use_bias=use_bias, initializer=initializer,name=name)
+        #self._output_size = output_size
+        #self._initial_params = initial_params
         self._activation = util.check_activation(activation)
-        self._use_bias = use_bias
-        self._input_shape = None
-        self._w = None
-        self._b = None
-        self.possible_keys = self.get_possbile_initializer_keys(use_bias=use_bias)
-        # check if all `tf.Variable` have initializer.
-        self._initializers = util.check_initializers(initializers, self.possible_keys)
+        #self._use_bias = use_bias
+        #self.initializer = initializer
+        #self._input_shape = None
+        #self._w = None
+        #self._b = None
+        #self.possible_keys = self.get_possible_initializer_keys(use_bias=use_bias)
 
     
     def _build(self, inputs):
@@ -149,22 +153,32 @@ class Dense(Linear):
             raise base.IncompatibleShapeError("{}: input shape must be [batch_size, {}] but not: [batch_size, {}]".format(self.name, self._input_shape[1], input_shape[1]))
 
         self._input_shape = input_shape
-
-        if "w" not in self._initializers:
-            self._initializers["w"] = initialization.he_normal(self._input_shape[1])
-        if "b" not in self._initializers:
-            self._initializers["b"] = initialization.he_normal(self._input_shape[1])
-
+    
+        param_shapes = {}
         weight_shape = (self._input_shape[1], self.output_size)
         dtype = inputs.dtype
+        param_shapes["w"] = weight_shape
+        if self._use_bias:
+            bias_shape = (self.output_size,)
+            param_shapes["b"] = bias_shape
+        
+        # generate initializers for each parameters
+        self._initializers = util.get_initializers(self.possible_keys, self.initializer, param_shapes, init_params=self._initial_params)
+        #self._initializers = util.check_initializers(initializers, self.possible_keys)
 
-        self._w = tf.get_variable("w", shape=weight_shape, dtype=dtype, initializer=self._initializers["w"])
+
+        #if "w" not in self._initializers:
+        #    self._initializers["w"] = initialization.he_normal(self._input_shape[1])
+        #if "b" not in self._initializers:
+        #    self._initializers["b"] = initialization.he_normal(self._input_shape[1])
+
+
+        self._w = util.get_tf_variable("w", shape=weight_shape, dtype=dtype, initializer=self._initializers["w"])
         outputs = tf.matmul(inputs, self._w)
         
         if self._use_bias:
-            bias_shape = (self.output_size,)
-            self._b = tf.get_variable("b", shape=bias_shape, dtype=dtype, initializer=self._initializers["b"])
-            otuputs = outputs + self._b
+            self._b = util.get_tf_variable("b", shape=bias_shape, dtype=dtype, initializer=self._initializers["b"])
+            outputs += self._b
         
         if self.activation is not None:
             outputs = self.activation(outputs)

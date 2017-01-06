@@ -6,8 +6,11 @@ from __future__ import print_function
 import re
 import inspect
 
+import numpy as np
 import tensorflow as tf
 from deuNet import initializations
+
+from IPython import embed
 
 
 def get_variables_in_scope(scope, collection=tf.GraphKeys.TRAINABLE_VARIABLES):
@@ -65,14 +68,14 @@ def check_initializers(initializers, keys):
         raise KeyError("Invalid initializer keys {}, initializers can only"
                 "be provided for {}".format(", ".join("'{}'".format(key) for key in extra_keys),
                                             ", ".join("'{}'".format(key) for key in keys)))
-    def check_nested_callables(dictionary):
-        for k,v in dictionary.iteritems():
-            if isinstance(v, dict):
-                check_nested_callables(v)
-            elif not callable(v):
-                raise TypeError("Initializer for '{}' is not a callable function or dicationary".format(k))
-
-    check_nested_callables(initializers)
+    #def check_nested_callables(dictionary):
+    #    for k,v in dictionary.iteritems():
+    #        if isinstance(v, dict):
+    #            check_nested_callables(v)
+    #        elif not callable(v):
+    #            raise TypeError("Initializer for '{}' is not a callable function or dicationary".format(k))
+    #check_nested_callables(initializers)
+    
     return dict(initializers)
 
 
@@ -111,12 +114,18 @@ def get_initializers(possible_keys, initializer, param_shapes, init_params=None)
     else:
         raise TypeError("initializer {} must be None or string.".format(initializer))
     
+    if (not issubclass(type(init_params), dict)) and (init_params is not None):
+        raise TypeError("A dict of init_params was expected.")
+
+    
     initializers = {}
-    arg_len = len(getargspec(initializer)[0])
+    arg_len = len(inspect.getargspec(initializer)[0])
     for k in possible_keys:
         if k not in param_shapes:
             raise KeyError("parameter {} must be in param_shapes dictionary".format(k))
-        if arg_len == 1: # does not need fan_in or fan_out
+        if len(param_shapes[k]) < 2: # initialize bias to zero
+            initializers[k] = np.zeros(param_shapes[k]).astype(np.float32)
+        elif arg_len == 1: # does not need fan_in or fan_out
             initializers[k] = initializer()
         elif arg_len == 2: # need fan_in
             initializers[k] = initializer(param_shapes[k][0])
@@ -126,10 +135,19 @@ def get_initializers(possible_keys, initializer, param_shapes, init_params=None)
             raise ValueError("initialization func only support less then 3 args, but {} provided".format(arg_len))
            
         # overwrite parameter initializer if a initial matrix provided
-        if k in init_params:
-            initializers[k] = init_params[k]
+        if init_params is not None:
+            if k in init_params:
+                initializers[k] = init_params[k]
     
     return initializers
 
+
+def get_tf_variable(name, shape, dtype, initializer):
+    if callable(initializer):
+        return tf.get_variable(name=name, shape=shape, dtype=dtype, initializer=initializer)
+    elif type(initializer) is np.ndarray:
+        return tf.get_variable(name=name, dtype=dtype, initializer=initializer)
+    else:
+        raise TypeError("initializer must be tf.initializer callable or np.array, but {} provided.".format(type(initializer)))
 
 

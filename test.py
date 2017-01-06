@@ -58,7 +58,36 @@ def weight_sharing():
     print("y2 = ", sess.run(y2))
     embed()
 
+def test_dense():
+    x_data = np.random.randn(100, 5)
+    x = tf.placeholder(tf.float32, shape=[None, x_data.shape[1]], name='x')
+    init_params = {'w':np.zeros((5,20),dtype=np.float32),'b':np.ones((20,),dtype=np.float32)}
+    with tf.name_scope("layer1"):
+        dense1 = deuNet.Dense(20, use_bias=True, initializer='glorot_normal', name='dense1',initial_params=init_params,activation='relu')
+        x_1 = dense1(x)
+
+    with tf.name_scope("layer2"):
+        dense2 = deuNet.Dense(40, use_bias=True, initializer='glorot_normal', name='dense2',activation=None)
+        y = dense2(x_1)
+    
+    init = tf.global_variables_initializer()
+    sess = tf.Session()
+    sess.run(init)
+    
+    feed_dict = {x:x_data}
+    y_vals = sess.run(y, feed_dict=feed_dict)
+
+    print("Linear output is ", y_vals)
+    print("module 1: {}".format(dense1.var_scope.name))
+    print("\t trainable variables: {}".format(['{} ,'.format(k.name) for k in deuNet.get_variables_in_module(dense1)]))
+
+    print("module 2: {}".format(dense2.var_scope.name))
+    print("\t trainable variables: {}".format(['{} ,'.format(k.name) for k in deuNet.get_variables_in_module(dense2)]))
+    print("\n\n\n")
+    embed()
+
 
 if __name__ == '__main__':
-    weight_sharing()
+    #weight_sharing()
     #foo()
+    test_dense()
