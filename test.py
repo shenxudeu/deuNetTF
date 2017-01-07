@@ -69,6 +69,8 @@ def test_dense():
     with tf.name_scope("layer2"):
         dense2 = deuNet.Dense(40, use_bias=True, initializer='glorot_normal', name='dense2',activation=None)
         y = dense2(x_1)
+
+    www = tf.Variable(name='www',initial_value=np.zeros((10,1)))
     
     init = tf.global_variables_initializer()
     sess = tf.Session()

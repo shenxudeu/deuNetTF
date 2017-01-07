@@ -69,7 +69,7 @@ class AbstractModule(object):
         """
 
     def __call__(self, *args, **kwargs):
-        """This function is called automatically in module building.
+        """This function is called automatically in when first time a tensor is passed into the graph.
         
         build the graph connection by calling `_build` function wrapped by `tf.Template`
         

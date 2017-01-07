@@ -150,3 +150,19 @@ def get_tf_variable(name, shape, dtype, initializer):
     else:
         raise TypeError("initializer must be tf.initializer callable or np.array, but {} provided.".format(type(initializer)))
 
+
+def tf_run_sess(sess,fetch_dict, feed_dict):
+    fetch_list = fetch_dict.values()
+    fetch_keys = fetch_dict.keys()
+    fetch_vals = sess.run(fetch_list, feed_dict=feed_dict)
+    out_dict = {}
+    for i,fetch_val in enumerate(fetch_vals):
+        out_dict[fetch_keys[i]] = fetch_val
+    return out_dict
+
+
+
+
+    
+
+

@@ -36,7 +36,7 @@ class Model(object):
 
         self._fetch_trainable_vars()
 
-        self.tensors = {}
+        self.tracables = {}
 
     def _fetch_trainable_vars(self):
         self._trainable_vars,self._nontrainable_vars = {}, {}
