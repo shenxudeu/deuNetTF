@@ -150,4 +150,3 @@ def get_tf_variable(name, shape, dtype, initializer):
     else:
         raise TypeError("initializer must be tf.initializer callable or np.array, but {} provided.".format(type(initializer)))
 
-

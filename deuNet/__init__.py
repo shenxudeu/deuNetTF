@@ -7,3 +7,4 @@ from deuNet.util import get_variables_in_scope
 from deuNet.util import get_variables_in_module
 from deuNet.initializations import *
 from deuNet.basic import *
+from deuNet.model import Model
