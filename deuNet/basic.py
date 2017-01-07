@@ -231,7 +231,7 @@ class BatchReshape(base.AbstractModule):
 
         self._input_shape = inputs.get_shape()[1:].as_list() # remove the batch dim.
         if self._shape.count(-1) > 0: # wild card -1 appears
-            shape = (-1,) + self._infer_shape(self._shape)
+            shape = (-1,) + self._infer_shape(self._input_shape)
         else:
             shape = (-1,) + self._shape
 
