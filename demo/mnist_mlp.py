@@ -52,27 +52,27 @@ def model_builder(in_shape,label_shape):
 
     return model
 
-def train(mnist, params):
-    model = model_builder(params.input_dims, params.label_dims)
-
-    update_weights = model.trainable_weights.values()
-    learning_rate = tf.placeholder(tf.float32, shape=[])
-
-    opt = tf.train.AdamOptimizer(learning_rate)
-    grads_and_vars = opt.compute_gradients(model.tracables["loss"])
-    train_step = opt.apply_gradients(grads_and_vars)
-
-    init = tf.global_variables_initializer()
-    sess = tf.Session()
-    sess.run(init)
-
-    print("Training Starts...\n")
-    total_batch = mnist.train.num_examples // params.n_epochs
-    for epoch in range(params.n_epochs):
-        for batch_id in range(1,total_batch+1):
-            valid_dict = {model.inputs["in_x":mnist.]}
-
-            if batch_id % params.eval_interval == 0:
+#def train(mnist, params):
+#    model = model_builder(params.input_dims, params.label_dims)
+#
+#    update_weights = model.trainable_weights.values()
+#    learning_rate = tf.placeholder(tf.float32, shape=[])
+#
+#    opt = tf.train.AdamOptimizer(learning_rate)
+#    grads_and_vars = opt.compute_gradients(model.tracables["loss"])
+#    train_step = opt.apply_gradients(grads_and_vars)
+#
+#    init = tf.global_variables_initializer()
+#    sess = tf.Session()
+#    sess.run(init)
+#
+#    print("Training Starts...\n")
+#    total_batch = mnist.train.num_examples // params.n_epochs
+#    for epoch in range(params.n_epochs):
+#        for batch_id in range(1,total_batch+1):
+#            valid_dict = {model.inputs["in_x":mnist.]}
+#
+#            if batch_id % params.eval_interval == 0:
 
 
 def get_params():
