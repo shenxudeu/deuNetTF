@@ -1,0 +1,5 @@
+# compiled source #
+*.pyc
+
+# vim cache #
+*.swp
