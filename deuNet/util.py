@@ -12,6 +12,21 @@ from deuNet import initializations
 
 from IPython import embed
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+def color_string(string, color):
+    return "{} {} {}".format(getattr(bcolors, color), string, bcolors.ENDC)
+
+def color_print(string,color):
+    print(color_string(string, color))
 
 def get_variables_in_scope(scope, collection=tf.GraphKeys.TRAINABLE_VARIABLES):
     """Returns a tuple of `tf.Variables` in a scope given collection.

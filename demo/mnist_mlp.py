@@ -99,8 +99,8 @@ def train(mnist, params):
     for epoch in range(params.n_epochs):
         eval_loss, eval_acc = process_epoch(sess, model, mnist.valid, train_mode=False)
         train_loss, train_acc = process_epoch(sess, model, mnist.train, train_mode=True)
-        print("On epoch {}, validation loss = {}, validation acc. = {}".format(epoch, eval_loss, eval_acc))
-        print("On epoch {}, training loss = {}, training acc. = {}".format(epoch, train_loss, train_acc))
+        print(deuNet.color_string("On epoch {}, validation loss = {}, validation acc. = {}".format(epoch, eval_loss, eval_acc),'OKBLUE'))
+        print(deuNet.color_string("On epoch {}, training loss = {}, training acc. = {}".format(epoch, train_loss, train_acc),'OKGREEN'))
         model.params.current_lr *= model.params.lr_decay
     
     test_loss, test_acc = process_epoch(sess, model, mnist.valid, train_mode=False)
@@ -109,12 +109,12 @@ def train(mnist, params):
         
 def get_params():
     params = HParams()
-    params.lr = 0.99
-    params.lr_decay = 0.98
+    params.lr = 1e-3
+    params.lr_decay = .99
     params.input_dims = [None, 28, 28, 1]
     params.label_dims = [None,10]
     params.batch_size = 100
-    params.n_epochs = 50
+    params.n_epochs = 10
     params.eval_interval = 10
     return params
 
