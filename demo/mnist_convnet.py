@@ -141,18 +141,3 @@ if __name__ == '__main__':
     mnist = Dataset.read_data_sets()
     train(mnist, params)
     
-    #model = model_builder(params.input_dims, params.label_dims)
-    #xs, ys = mnist.train.next_batch(batch_size = 100,one_hot=True)
-
-    #init = tf.global_variables_initializer()
-    #sess = tf.Session()
-    #sess.run(init)
-
-    #feed_dict = {model.inputs['in_x']:xs, model.inputs['in_y']:ys}
-    #out_vals = deuNet.tf_run_sess(sess, model.outputs, feed_dict=feed_dict)
-    #embed()
-    #HERE
-
-
-
-
