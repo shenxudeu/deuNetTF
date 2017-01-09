@@ -36,9 +36,10 @@ def make_loss(model):
 def model_builder(in_shape,label_shape):
     in_x = tf.placeholder(tf.float32, in_shape)
     in_y = tf.placeholder(tf.float32, label_shape)
+    keep_drop = tf.placeholder(tf.float32,[])
     
     with tf.variable_scope("ConvLayer"):
-        x = deuNet.Conv2D(32, (5,5), stride=1,use_bias=True, initializer='he_normal', activation='relu', name="conv1")(in_x)
+        x = deuNet.Conv2D(32, (5,5), stride=1,use_bias=True, initializer='he_normal', padding='SAME', activation='relu', name="conv1")(in_x)
         x = deuNet.MaxPool(2, 2, padding='SAME',name="maxpool1")(x)
         x = deuNet.Conv2D(64, (5,5), stride=1,use_bias=True, initializer='he_normal', activation='relu', name="conv2")(x)
         x = deuNet.MaxPool(2, 2, padding='SAME',name="maxpool2")(x)
@@ -50,15 +51,16 @@ def model_builder(in_shape,label_shape):
         h1 = deuNet.Dense(1024, activation='relu', initializer='he_normal', name='dense1')(flat_x)
     
     with tf.variable_scope('OutLayer'):
-        score = deuNet.Dense(10, initializer='he_normal', name='outlinear')(h1)
+        h1_drop = tf.nn.dropout(h1, keep_drop,name="h1_drop")
+        score = deuNet.Dense(10, initializer='he_normal', name='outlinear')(h1_drop)
 
-    _inputs = {"in_x":in_x,"in_y":in_y}
+    _inputs = {"in_x":in_x,"in_y":in_y,"keep_drop":keep_drop}
     _outputs = {"score":score}
     model = deuNet.Model(_inputs, _outputs)
     model = make_loss(model)
     
     # add extra tracable tensors
-    extra_tracables = {"h1":h1,"x":x}
+    extra_tracables = {"x":x}
     model.tracables.update(extra_tracables)
 
     return model
@@ -69,15 +71,20 @@ def process_epoch(sess, model, data, train_mode=False):
     num_examples = data.num_examples
     batch_size = model.params.batch_size
     total_batch = num_examples // batch_size
+    if train_mode:
+        keep_drop = model.params.keep_drop
+    else:
+        keep_drop = 1.
     
     avg_loss = 0.
     avg_pred_acc = 0.
     for i in range(total_batch):
         batch_images, batch_labels = data.next_batch(batch_size,one_hot=True)
-        feed_dict = {model.inputs["in_x"]:batch_images, model.inputs["in_y"]:batch_labels, model.learning_rate:model.params.current_lr} 
+        feed_dict = {model.inputs["in_x"]:batch_images, model.inputs["in_y"]:batch_labels, model.inputs["keep_drop"]:keep_drop,model.learning_rate:model.params.current_lr} 
         fetch_dict = model.tracables
         if train_mode:
             fetch_dict.update({"train_step":model.train_step})
+            #model.params.current_lr *= model.params.lr_decay
         fetch_vals = deuNet.tf_run_sess(sess, fetch_dict, feed_dict)
         avg_loss += fetch_vals["loss"]
         avg_pred_acc += fetch_vals["acc"]
@@ -106,8 +113,11 @@ def train(mnist, params):
     for epoch in range(params.n_epochs):
         eval_loss, eval_acc = process_epoch(sess, model, mnist.valid, train_mode=False)
         train_loss, train_acc = process_epoch(sess, model, mnist.train, train_mode=True)
+        test_loss, test_acc = process_epoch(sess, model, mnist.test, train_mode=False)
         print(deuNet.color_string("On epoch {}, validation loss = {}, validation acc. = {}".format(epoch, eval_loss, eval_acc),'OKBLUE'))
         print(deuNet.color_string("On epoch {}, training loss = {}, training acc. = {}".format(epoch, train_loss, train_acc),'OKGREEN'))
+        print(deuNet.color_string("On epoch {}, testing loss = {}, testing acc. = {}".format(epoch, test_loss, test_acc),'FAIL'))
+        print("\n")
         model.params.current_lr *= model.params.lr_decay
     
     test_loss, test_acc = process_epoch(sess, model, mnist.valid, train_mode=False)
@@ -117,12 +127,13 @@ def train(mnist, params):
 def get_params():
     params = HParams()
     params.lr = 1e-4
-    params.lr_decay = .99
+    params.lr_decay = .999
     params.input_dims = [None, 28, 28, 1]
     params.label_dims = [None,10]
     params.batch_size = 100
-    params.n_epochs = 10
+    params.n_epochs = 15
     params.eval_interval = 10
+    params.keep_drop = .5
     return params
 
 if __name__ == '__main__':
