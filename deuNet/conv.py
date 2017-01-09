@@ -19,6 +19,10 @@ from deuNet import initializations
 
 from IPython import embed
 
+SAME = "SAME"
+VALID = "VALID"
+ALLOWED_PADDINGS = {SAME, VALID}
+
 def _fill_shape(x,n):
     """Automatically create a tuple of shape repeating x by n times.
     
@@ -45,7 +49,6 @@ def _fill_shape(x,n):
 
 def _verify_padding(padding):
     """Verify padding method"""
-    ALLOWED_PADDINGS = {SAME, VALID}
     if padding not in ALLOWED_PADDINGS:
         raise ValueError("Padding must be member of {}, but not {}".format(ALLOWED_PADDINGS,padding))
     return padding
@@ -58,7 +61,7 @@ class Conv2D(base.AbstractModule):
     """
 
     def __init__(self, output_channels, kernel_shape, stride=1,
-            padding=SAME,initial_params=None, use_bias=True, initializer=None, name="conv_2d"):
+            padding=SAME,initial_params=None, activation=None, use_bias=True, initializer=None, name="conv_2d"):
         """Conv2D constructor
         
         tensorflow has an explaination of VALID and SAME padding modes:
@@ -98,7 +101,9 @@ class Conv2D(base.AbstractModule):
         self._padding = _verify_padding(padding)
         self._use_bias = use_bias
         self.possible_keys = self.get_possible_initializer_keys(use_bias=use_bias)
+        self._initial_params = initial_params
         self.initializer = initializer
+        self._activation = util.check_activation(activation)
 
     @classmethod
     def get_possible_initializer_keys(cls, use_bias=True):
@@ -140,14 +145,17 @@ class Conv2D(base.AbstractModule):
             bias_shape = (self.output_channels,) 
             param_shapes["b"] = bias_shape
         
-        # TODO: add self._initializers
+        self._initializers = util.get_initializers(self.possible_keys, self.initializer, param_shapes, init_params=self._initial_params,conv=True)
 
         self._w = util.get_tf_variable("w", shape=weight_shape, dtype=dtype, initializer=self._initializers["w"])
-        outputs = tf.nn.conv2d(inputs, w, strides = self.stride, padding = self.padding)
+        outputs = tf.nn.conv2d(inputs, self._w, strides = self.stride, padding = self.padding)
         
         if self._use_bias:
             self._b = util.get_tf_variable("b", shape=bias_shape, dtype=dtype, initializer=self._initializers["b"])
             outputs += self._b
+
+        if self.activation is not None:
+            outputs = self.activation(outputs)
 
         if tuple(outputs.get_shape().as_list()) != self._output_shape:
             raise base.IncompatibleShapeError("real output shape {} must agree with theoretical shape {}".format(
@@ -182,7 +190,37 @@ class Conv2D(base.AbstractModule):
     def output_shape(self):
         self._ensure_is_connected()
         return self._output_shape
+    @property
+    def activation(self):
+        return self._activation
 
 
+class MaxPool(base.AbstractModule):
+    """Spatial max-pooling module"""
+    def __init__(self, kernel_shape, stride=1, padding=SAME, name="max_pool"):
+        super(MaxPool,self).__init__(name=name)
 
+        try:
+            self._kernel_shape = (1,) + _fill_shape(kernel_shape,2) + (1,)
+        except TypeError as e:
+            if len(kernel_shape) == 4:
+                self._kernel_shape = kernel_shape
+            else:
+                raise base.IncompatibleShapeError("Invalid kernel shape: {}".format(e))
 
+        try:
+            self._stride = (1,) + _fill_shape(stride,2) + (1,)
+        except TypeError as e:
+            if len(stride) == 4:
+                self._stride = stride
+            else:
+                raise base.IncompatibleShapeError("Invalid stride: {}".format(e))
+
+        self._padding = _verify_padding(padding)
+        
+    def _build(self, inputs):
+        """Connects the MaxPool module into the graph"""
+        self._input_shape = tuple(inputs.get_shape().as_list())
+        outputs = tf.nn.max_pool(inputs, ksize=self._kernel_shape, strides=self._stride, padding=self._padding)
+
+        return outputs

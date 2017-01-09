@@ -108,7 +108,7 @@ def check_activation(activation):
     return _convert_activation(activation)
 
 
-def get_initializers(possible_keys, initializer, param_shapes, init_params=None):
+def get_initializers(possible_keys, initializer, param_shapes, init_params=None,conv=False):
     """Generate initializers for all possible parameters in the module
     
     It generates initilizers for all possible keys, then overwirte some of them from init_params. 
@@ -143,9 +143,15 @@ def get_initializers(possible_keys, initializer, param_shapes, init_params=None)
         elif arg_len == 1: # does not need fan_in or fan_out
             initializers[k] = initializer()
         elif arg_len == 2: # need fan_in
-            initializers[k] = initializer(param_shapes[k][0])
+            if conv:
+                initializers[k] = initializer(np.prod(param_shapes[k][:-1]))
+            else:
+                initializers[k] = initializer(param_shapes[k][0])
         elif arg_len == 3: # need fan_in and fan_out
-            initializers[k] = initializer(param_shapes[k][0],param_shapes[k][1])
+            if conv:
+                initializers[k] = initializer(np.prod(param_shapes[k][:-1]),param_shapes[k][-1])
+            else:
+                initializers[k] = initializer(param_shapes[k][0],param_shapes[k][1])
         else:
             raise ValueError("initialization func only support less then 3 args, but {} provided".format(arg_len))
            
