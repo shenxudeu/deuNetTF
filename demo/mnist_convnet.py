@@ -117,6 +117,7 @@ def train(mnist, params):
         print(deuNet.color_string("On epoch {}, validation loss = {}, validation acc. = {}".format(epoch, eval_loss, eval_acc),'OKBLUE'))
         print(deuNet.color_string("On epoch {}, training loss = {}, training acc. = {}".format(epoch, train_loss, train_acc),'OKGREEN'))
         print(deuNet.color_string("On epoch {}, testing loss = {}, testing acc. = {}".format(epoch, test_loss, test_acc),'FAIL'))
+        embed()
         print("\n")
         model.params.current_lr *= model.params.lr_decay
     
