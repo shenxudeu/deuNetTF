@@ -44,7 +44,11 @@ class Dataset(object):
     def num_examples(self):
         return self._num_examples
     
-    def next_batch(self, batch_size=100, with_label=True, one_hot = False):
+    def next_batch(self, batch_size=100, with_label=True, one_hot = False,full_batch=False):
+        if full_batch:
+            self.pointer = 0
+            batch_size = self.num_examples
+
         if self.pointer >= self.num_examples-2*batch_size: # reset pointer to 0 if reach data end
             self.pointer = 0
         else:
@@ -80,7 +84,7 @@ class Dataset(object):
                 new_img = upsize_row_once(new_img)
                 new_img = upsize_col_once(new_img)
             return new_img
-
+        
         for data in self._images[self.pointer:self.pointer+batch_size]:
             result.append(self.crop_image(upsize_me(data, upsize_amount),upsize_amount))
 

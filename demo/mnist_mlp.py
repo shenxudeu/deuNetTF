@@ -62,13 +62,18 @@ def process_epoch(sess, model, data, train_mode=False):
     num_examples = data.num_examples
     batch_size = model.params.batch_size
     total_batch = num_examples // batch_size
+    if not train_mode:
+        total_batch = 1 # evaluate the full batch once
     
     avg_loss = 0.
     avg_pred_acc = 0.
     for i in range(total_batch):
-        batch_images, batch_labels = data.next_batch(batch_size,one_hot=True)
+        if train_mode:
+            batch_images, batch_labels = data.next_batch(batch_size,one_hot=True)
+        else:
+            batch_images, batch_labels = data.next_batch(batch_size,one_hot=True,full_batch=True)
         feed_dict = {model.inputs["in_x"]:batch_images, model.inputs["in_y"]:batch_labels, model.learning_rate:model.params.current_lr} 
-        fetch_dict = model.tracables
+        fetch_dict = model.tracables.copy()
         if train_mode:
             fetch_dict.update({"train_step":model.train_step})
         fetch_vals = deuNet.tf_run_sess(sess, fetch_dict, feed_dict)
@@ -99,11 +104,14 @@ def train(mnist, params):
     for epoch in range(params.n_epochs):
         eval_loss, eval_acc = process_epoch(sess, model, mnist.valid, train_mode=False)
         train_loss, train_acc = process_epoch(sess, model, mnist.train, train_mode=True)
+        test_loss, test_acc = process_epoch(sess, model, mnist.test, train_mode=False)
         print(deuNet.color_string("On epoch {}, validation loss = {}, validation acc. = {}".format(epoch, eval_loss, eval_acc),'OKBLUE'))
         print(deuNet.color_string("On epoch {}, training loss = {}, training acc. = {}".format(epoch, train_loss, train_acc),'OKGREEN'))
+        print(deuNet.color_string("On epoch {}, testing loss = {}, testing acc. = {}".format(epoch, test_loss, test_acc),'FAIL'))
+        print("")
         model.params.current_lr *= model.params.lr_decay
     
-    test_loss, test_acc = process_epoch(sess, model, mnist.valid, train_mode=False)
+    test_loss, test_acc = process_epoch(sess, model, mnist.test, train_mode=False)
     print("On epoch {}, test loss = {}, test acc. = {}".format(epoch, test_loss, test_acc))
     
         
