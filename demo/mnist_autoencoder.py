@@ -35,15 +35,15 @@ def model_builder(in_shape):
 
     # Encoding
     with tf.variable_scope("Encodding"):
-        encoded = deuNet.Dense(encoding_dim1, activation="relu", initializer="he_normal",name="dense1")(flat_x)
-        encoded = deuNet.Dense(encoding_dim2, activation="relu", initializer="he_normal",name="dense2")(encoded)
-        encoded = deuNet.Dense(encoding_dim, activation="relu", initializer="he_normal",name="dense3")(encoded)
+        encoded = deuNet.Dense(encoding_dim, activation="relu", initializer="he_normal",name="dense1")(flat_x)
+        #encoded = deuNet.Dense(encoding_dim2, activation="relu", initializer="he_normal",name="dense2")(encoded)
+        #encoded = deuNet.Dense(encoding_dim, activation="relu", initializer="he_normal",name="dense3")(encoded)
         
     # Decoding
     with tf.variable_scope("Decodding"):
-        decoded = deuNet.Dense(encoding_dim2, activation="relu", initializer="he_normal",name="dense1")(encoded)
-        decoded = deuNet.Dense(encoding_dim1, activation="relu", initializer="he_normal",name="dense2")(decoded)
-        decoded = deuNet.Dense(28*28, activation="sigmoid", initializer="he_normal",name="dense3")(decoded)
+        decoded = deuNet.Dense(28*28, activation="sigmoid", initializer="he_normal",name="dense1")(encoded)
+        #decoded = deuNet.Dense(encoding_dim1, activation="relu", initializer="he_normal",name="dense2")(decoded)
+        #decoded = deuNet.Dense(28*28, activation="sigmoid", initializer="he_normal",name="dense3")(decoded)
     
     # Make End-To-End Model
     _inputs = {"in_x":in_x}
@@ -52,17 +52,18 @@ def model_builder(in_shape):
     model.tracables.update({"flat_x":flat_x})
     model = make_loss(model)
 
-    # Make Encoder Model
-    _inputs = {"in_x":in_x}
-    _outputs = {"encoded":encoded}
-    encoder_model = deuNet.Model(_inputs, _outputs)
-    
-    # Make Decoder Model
-    latent = tf.placeholder(tf.float32, (None,encoding_dim),name="latent")
-    _inputs = {"latent":latent}
-    _outputs = {"encoded":encoded}
-    decoder_model = deuNet.Model(_inputs, _outputs)
-
+    ## Make Encoder Model
+    #_inputs = {"in_x":in_x}
+    #_outputs = {"encoded":encoded}
+    #encoder_model = deuNet.Model(_inputs, _outputs)
+    #
+    ## Make Decoder Model
+    #latent = tf.placeholder(tf.float32, (None,encoding_dim),name="latent")
+    #_inputs = {"latent":latent}
+    #_outputs = {"encoded":encoded}
+    #decoder_model = deuNet.Model(_inputs, _outputs)
+    encoder_model = None
+    decoder_model = None
     return model, encoder_model, decoder_model
 
 
@@ -120,16 +121,16 @@ def train(mnist, params):
         
 def get_params():
     params = HParams()
-    params.lr = 1e-2
-    params.lr_decay = .99
+    params.lr = 1e-4
+    params.lr_decay = .99999
     params.input_dims = [None, 28, 28, 1]
     params.label_dims = [None,10]
     params.batch_size = 100
-    params.n_epochs = 10
+    params.n_epochs = 50
     params.eval_interval = 10
     return params
 
 if __name__ == '__main__':
     params = get_params()
-    mnist = Dataset.read_data_sets()
+    mnist = Dataset.read_data_sets(augment=False)
     train(mnist, params)

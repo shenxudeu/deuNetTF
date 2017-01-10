@@ -112,13 +112,13 @@ class Dataset(object):
         return cropped_img
 
 
-def read_data_sets(mnist_data=None):
+def read_data_sets(mnist_data=None,augment=True):
     if mnist_data is None:
         mnist_data = input_data.read_data_sets('/tmp/data/',one_hot=False)
     class DataSets(object):
         pass
     data_sets = DataSets()
-    data_sets.train = Dataset(mnist_data.train.images, mnist_data.train.labels, augment=True)
+    data_sets.train = Dataset(mnist_data.train.images, mnist_data.train.labels, augment=augment)
     data_sets.valid = Dataset(mnist_data.validation.images, mnist_data.validation.labels, augment=False)
     data_sets.test = Dataset(mnist_data.test.images, mnist_data.test.labels, augment=False)
     return data_sets
