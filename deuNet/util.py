@@ -181,6 +181,22 @@ def tf_run_sess(sess,fetch_dict, feed_dict):
         out_dict[fetch_keys[i]] = fetch_val
     return out_dict
 
+def setup_session_and_seeds(assert_gpu=True, mem_fraction=None, clear_graph=True):
+    if clear_graph:
+        tf.reset_default_graph()
+    if mem_fraction is not None:
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=mem_fraction)
+    sess = tf.Session()
+    return sess
+
+def tensor_gather_2d(x, index,index_dim=1):
+    if index_dim ==0:
+        return tf.gather(x, index)
+    elif index_dim == 1:
+        return tf.transpose(tf.gather(tf.transpose(x),index))
+    else:
+        raise ValueError("only accept index_dim = 0 or 1, but given {}".format(index_dim))
+
 
 
 

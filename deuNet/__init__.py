@@ -7,6 +7,9 @@ from deuNet.util import get_variables_in_scope
 from deuNet.util import get_variables_in_module
 from deuNet.util import tf_run_sess
 from deuNet.util import color_print, color_string
+from deuNet.util import tensor_gather_2d
+from deuNet.util import setup_session_and_seeds
+
 from deuNet.initializations import *
 from deuNet.basic import *
 from deuNet.conv import Conv2D
