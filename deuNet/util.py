@@ -186,7 +186,9 @@ def setup_session_and_seeds(assert_gpu=True, mem_fraction=None, clear_graph=True
         tf.reset_default_graph()
     if mem_fraction is not None:
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=mem_fraction)
-    sess = tf.Session()
+        sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+    else:
+        sess = tf.Session()
     return sess
 
 def tensor_gather_2d(x, index,index_dim=1):
