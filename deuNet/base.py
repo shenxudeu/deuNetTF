@@ -110,7 +110,7 @@ class AbstractModule(object):
 
     def _ensure_is_connected(self):
         if not self.is_connected:
-            raise NotConnectedError("Variable in {} not instantiated yet, __call__ the module".formt(self.name))
+            raise NotConnectedError("Variable in {} not instantiated yet, __call__ the module".format(self.name))
     
 
 class Module(AbstractModule):

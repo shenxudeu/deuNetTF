@@ -68,7 +68,7 @@ class Conv2D(base.AbstractModule):
         https://www.tensorflow.org/api_docs/python/nn/convolution#convolution
 
         Inputs:
-            output_channels: int, number of ouptut channels. 
+            output_channels: int, number of output channels. 
             kernel_shape: tuple/list of int, defines the kernel sizes.
             stride: tuple of int to define strides in height and width, or an interger that is used to define stride in all dims.
             padding: padding method, either `SAME` or `VALID`
@@ -189,6 +189,159 @@ class Conv2D(base.AbstractModule):
     @property
     def output_shape(self):
         self._ensure_is_connected()
+        return self._output_shape
+    @property
+    def activation(self):
+        return self._activation
+
+
+class Conv2DTranspose(base.AbstractModule):
+    """ Spatial transposed / reverse / up 2D convolution module, including bias.
+
+    This acts as an easy warpper around the `tf.nn.conv2d_transpose`, abstracting away variable creation and sharing.
+    It accepts tensorflow dimension order for images: <batch, height, width, channels> / <NHWC>
+    """
+
+    def __init__(self, output_channels, output_shape, kernel_shape, stride=1,
+            padding=SAME, initial_params=None, activation=None, use_bias=True, initializer=None, name="conv_2d_transpose",
+            w_tensor=None, b_tensor=None):
+        """ Conv2DTranspose constructor
+
+        Interface is similar to `Conv2D`.
+
+        Inputs:
+            output_channels: int, number of output channels.
+            output_shape: List of output sizes of transpose convolution.
+            kernel_shape: List of kernel sizes, must be length of 2.
+            stride: List of kernel strides.
+            padding: Padding algorithm, either `nn.SAME` or `nn.VALID`
+            initial_params: dict of np.array, defining initial parameters of weights, filter shape = <filter_height, filter_width, in_channel, out_channel>
+            activation: string, the activation function.
+            use_bias: bool, whether use bias
+            initializer: string, define which initialize method to use
+            name: string, name of the module
+
+        This operation is sometimes called `deconvolution`, but it actually the transpose of `conv2d` rather than an actual deconvolution.
+
+        Similar to `conv2d`, given an input tensor of shape <batch, out_height, out_width, in_channels> and a filter/kernel of shape <filter_height, filter_width, out_channels, in_channels>, this module performs the following:
+
+            - 1. Transpose and Flatten the filter `tf.variable` to a 2-D matrix with shape <filter_height * filter_width * in_channels, out_channels>.
+            - 2. Extracts image patches (sliding window) from the input tensor to form a virtual tensor of shape <batch, out_height, out_width, filter_height * filter_width * in_channels>.
+            - 3. For each patch, right-multiplies the filter matrix and image patch vector. Finally, it produces the output of shape <batch, out_height, out_width, output_channels>
+        """
+        super(Conv2DTranspose, self).__init__(name)
+
+        self._output_channels = output_channels
+        self._output_shape = tuple(output_shape) # this is new to `conv2dtranspose`
+        self._input_shape = None
+        self._kernel_shape = _fill_shape(kernel_shape, 2)
+        try:
+            self._stride = (1,) + _fill_shape(stride,2) + (1,)
+        except TypeError as e:
+            if len(stride) == 4:
+                self._stride = tuple(stride)
+            else:
+                raise base.IncompatibleShapeError("Invalid stride: {}".format(e))
+        
+        self._padding = _verify_padding(padding)
+        self._use_bias = use_bias
+        self.possible_keys = self.get_possible_initializer_keys(use_bias=use_bias)
+        self._initial_params = initial_params
+        self.initializer = initializer
+        self._activation = util.check_activation(activation)
+        self.w_tensor = w_tensor
+        self.b_tensor = b_tensor
+
+    @classmethod
+    def get_possible_initializer_keys(cls, use_bias=True):
+        return {'w', 'b'} if use_bias else {'w'}
+
+    
+    def _build(self, inputs):
+        """Connects the Conv2DTranspose module into the graph
+        
+        We create `tf.variable` for module parameters and call the `tf.nn.conv2d` function here.
+
+        Inputs:
+            inputs: A 4D tensor of shape <batch_size, input_height, input_width, input_channels>
+
+        Returns:
+            outputs: tf.tensor, shape = <batch_size, output_height, output_width, output_channels>
+        """
+        self._input_shape = tuple(inputs.get_shape().as_list())
+        input_height = self._input_shape[1]
+        input_width  = self._input_shape[2]
+        input_channels=self._input_shape[3]
+        output_channels = self._output_channels
+            
+        if len(self._input_shape) != 4:
+            raise base.IncompatibleShapeError("Input Tensor must have shape (batch_size, in_height, in_width, in_channels)")
+        
+        if len(self._output_shape) != 2:
+            raise base.IncompatibleShapeError("Output shape must be specified as (output_height, output_width)")
+        
+        # handle `tf.variable` shapes
+        kernel_shape = self._kernel_shape
+        param_shapes = {}
+        dtype = inputs.dtype
+        weight_shape = (kernel_shape[0], kernel_shape[1], output_channels, input_channels)
+        param_shapes["w"] = weight_shape
+        if self._use_bias:
+            bias_shape = (output_channels, )
+            param_shapes["b"] = bias_shape
+
+        self._initializers = util.get_initializers(self.possible_keys, self.initializer, param_shapes, init_params=self._initial_params, conv=True)
+        
+        if self.w_tensor is None:
+            self._w = util.get_tf_variable("w", shape=weight_shape, dtype=dtype, initializer=self._initializers["w"])
+        else:
+            self._w = self.w_tensor
+
+        # Use tensorflow shape op to manipulate inputs shape, get `output_shape` for `tf.nn.conv2d_transpose` function
+        batch_size = tf.expand_dims(tf.shape(inputs)[0], 0)
+        conv_output_shape = tf.convert_to_tensor(tuple(self.output_shape) + (self.output_channels, ))
+        output_shape = tf.concat([batch_size, conv_output_shape], 0)
+        outputs = tf.nn.conv2d_transpose(inputs, self._w, output_shape, strides=self._stride, padding=self._padding)
+        
+        if self._use_bias:
+            if self.b_tensor is None:
+                self._b = util.get_tf_variable("b", shape=bias_shape, dtype=dtype, initializer=self._initializers["b"])
+            else:
+                self._b = self.b_tensor
+            outputs += self._b
+
+        if self.activation is not None:
+            outputs = self.activation(outputs)
+        
+        return outputs
+
+    @property
+    def output_channels(self):
+        return self._output_channels
+    @property
+    def kernel_shape(self):
+        return self._kernel_shape
+    @property
+    def padding(self):
+        return self._padding
+    @property
+    def stride(self):
+        return self._stride
+    @property
+    def w(self):
+        self._ensure_is_connected()
+        return self._w
+    @property
+    def b(self):
+        self._ensure_is_connected()
+        return self._b
+    @property
+    def input_shape(self):
+        #self._ensure_is_connected()
+        return self._input_shape
+    @property
+    def output_shape(self):
+        #self._ensure_is_connected()
         return self._output_shape
     @property
     def activation(self):

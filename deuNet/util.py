@@ -55,6 +55,14 @@ def get_variables_in_module(module, collection=tf.GraphKeys.TRAINABLE_VARIABLES)
     return get_variables_in_scope(module.var_scope, collection=collection)
 
 
+def get_trainable_by_name(name):
+    """Return a `tf.tensor` by its name """
+    tensors = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+    for tensor in tensors:
+        if name in tensor.name:
+            return tensor
+    return None
+
 def check_initializers(initializers, keys):
     """Check the given initializers
     

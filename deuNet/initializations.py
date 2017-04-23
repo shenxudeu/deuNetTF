@@ -15,10 +15,10 @@ import math
 import tensorflow as tf
 
 
-def he_normal(input_size, seed=2014):
-    stddev = 1 / math.sqrt(input_size)
+def he_normal(input_size, seed=2015):
+    stddev = 1. / math.sqrt(input_size)
     return tf.truncated_normal_initializer(stddev=stddev,seed=seed)
 
-def glorot_normal(input_size,output_size, seed=2014):
-    stddev = 1 / math.sqrt(input_size + output_size)
+def glorot_normal(input_size,output_size, seed=2015):
+    stddev = 1. / math.sqrt(input_size + output_size)
     return tf.truncated_normal_initializer(stddev=stddev,seed=seed)
