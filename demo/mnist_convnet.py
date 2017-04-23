@@ -1,4 +1,4 @@
-"""deuNet Demo of MLP on MNIST"""
+"""deuNet Demo of Convnet on MNIST"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
